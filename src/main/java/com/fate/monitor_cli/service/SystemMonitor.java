@@ -6,7 +6,7 @@ import oshi.hardware.CentralProcessor;
 import oshi.hardware.GlobalMemory;
 import oshi.hardware.HWDiskStore;
 
-import java.util.List;
+
 
 @Service
 public class SystemMonitor {
@@ -16,10 +16,13 @@ public class SystemMonitor {
 
     public SystemMonitor(SystemInfo systemInfo) {
         this.systemInfo = systemInfo;
-        this.prevTicks = systemInfo.getHardware().getProcessor().getSystemCpuLoadTicks();
     }
 
     public double getCpuUsage() {
+        if (prevTicks == null) {
+            prevTicks = systemInfo.getHardware().getProcessor().getSystemCpuLoadTicks();
+        }
+
         CentralProcessor centralProcessor = systemInfo.getHardware().getProcessor();
         long[] ticks = centralProcessor.getSystemCpuLoadTicks();
         double cpu = centralProcessor.getSystemCpuLoadBetweenTicks(prevTicks) * 100;
@@ -33,7 +36,7 @@ public class SystemMonitor {
     }
 
     public double getMemoryUsed() {
-        return (systemInfo.getHardware().getMemory().getAvailable() - getTotalMemory()) / CONVERSOR_BYTES_TO_GB;
+        return  getTotalMemory() - getTotalMemoryAvailable();
     }
 
     public double getTotalMemoryAvailable() {
@@ -43,7 +46,7 @@ public class SystemMonitor {
     public String disksInfo() {
         StringBuilder builder = new StringBuilder();
         systemInfo.getHardware().getDiskStores().forEach( disk -> builder.append(
-                String.format("Disk Name: %s;\nDisk total Size: %.2f;\nDisk Model: %s,\nAvailable Size: %.2f\"",
+                String.format("Disk Name: %s;\nDisk total Size: %.2f;\nDisk Model: %s,\nAvailable Size: %.2f",
                         disk.getName(),
                         disk.getSize() / CONVERSOR_BYTES_TO_GB,
                         disk.getModel(),
