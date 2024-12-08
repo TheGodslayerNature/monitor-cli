@@ -11,6 +11,7 @@ import oshi.hardware.HWDiskStore;
 import oshi.hardware.HardwareAbstractionLayer;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -19,7 +20,7 @@ import static org.mockito.Mockito.when;
 
 class SystemMonitorTest {
 
-    public static final int CONVERSOR_MB_TO_GB = 1_073_741_824;
+    public static final int CONVERSOR_BITES_TO_GB = 1_073_741_824;
     @Mock
     private SystemInfo mockSystemInfo;
     @Mock
@@ -57,8 +58,8 @@ class SystemMonitorTest {
 
     @Test
     void testGetMemoryAvailable() {
-        when(mockMemory.getAvailable()).thenReturn(2L * CONVERSOR_MB_TO_GB);
-        when(mockMemory.getTotal()).thenReturn(8L * CONVERSOR_MB_TO_GB);
+        when(mockMemory.getAvailable()).thenReturn(2L * CONVERSOR_BITES_TO_GB);
+        when(mockMemory.getTotal()).thenReturn(8L * CONVERSOR_BITES_TO_GB);
 
         double availableMemory = systemMonitor.getTotalMemoryAvailable();
 
@@ -70,10 +71,29 @@ class SystemMonitorTest {
     }
 
     @Test
+    void testMemoryUsagePercent() {
+        when(mockMemory.getAvailable()).thenReturn(5L * CONVERSOR_BITES_TO_GB);
+        when(mockMemory.getTotal()).thenReturn(10L * CONVERSOR_BITES_TO_GB);
+
+        double availableMemory = systemMonitor.getTotalMemoryAvailable();
+
+        assertEquals(5.0, availableMemory, 0.01);
+
+        double usedMemory = systemMonitor.getMemoryUsed();
+
+        assertEquals(5.0, usedMemory, 0.01);
+
+        double memoryUsagePercent = systemMonitor.getMemoryUsagePercent();
+
+        assertEquals(50.0, memoryUsagePercent);
+    }
+
+    @Test
     void testAvailableDiskSize() {
         when(diskStore.getName()).thenReturn("Disk Local (c)");
         when(diskStore.getSize()).thenReturn(515_396_075_520L);
         when(diskStore.getModel()).thenReturn("Sean Kingston");
+        when(diskStore.getReadBytes()).thenReturn(268_435_456_000L);
 
         List<HWDiskStore> disks = new ArrayList<>();
         disks.add(diskStore);
@@ -82,6 +102,16 @@ class SystemMonitorTest {
 
         String info = systemMonitor.disksInfo();
 
-        assertEquals("Disk Name: Disk Local (c);\nDisk total Size: 480,00;\nDisk Model: Sean Kingston,\nAvailable Size: 480,00",info);
+        assertEquals("Disk Name: Disk Local (c);\nDisk total Size: 480,00;\nDisk Model: Sean Kingston,\nAvailable Size: 250,00",info);
     }
+
+    @Test
+    void noDisks() {
+        when(mockHardware.getDiskStores()).thenReturn(Collections.emptyList());
+
+        String info = systemMonitor.disksInfo();
+
+        assertEquals("No disks available", info);
+    }
+
 }
